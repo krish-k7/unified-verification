@@ -1,8 +1,5 @@
 # Libraries
 from pagen import PA
-from collections import Counter
-import string
-import math
 from fractions import Fraction
 import numpy as np
 import pickle as pkl
@@ -62,14 +59,11 @@ class pm:
         # Access abstraction parameters
         sx = self.model.sx
         x_space = self.model.x_space
-        sv = self.model.sv
-        v_space = self.model.v_space
         serr = self.model.serr
         err_space = self.model.err_space
 
         # Define discrete space
         xbar_space = np.arange(int(x_space[0]/sx), int(x_space[1]/sx)+1)
-        vbar_space = np.arange(int(v_space[0]/sv), int(v_space[1]/sv)+1)
         errbar_space = np.arange(int(err_space[0]/serr), int(err_space[1]/serr))
 
         # Loop through discrete space and construct PRISM commands

@@ -23,7 +23,6 @@ else:
     device = torch.device("cpu")
 
 # Hyperparameters
-VERSION = 3
 GAMMA = 0.99 # discount factor
 LR = 0.001 # optimizer lr
 BUFFER_SIZE = 10000 # replay memory
@@ -150,7 +149,7 @@ for episode in range(TRAIN_EPISODES):
 env.close() # close gym environment
 
 # Save policy and training params/results
-torch.save(policy_net.state_dict(), f"{PATH}/sample-weights/policy_{VERSION}.pth") # or move up to save checkpoints
+torch.save(policy_net.state_dict(), f"{PATH}/sample-weights/policy.pth") # or move up to save checkpoints
 training_params = {
     "gamma":GAMMA,
     "learning_rate":LR,
@@ -166,7 +165,7 @@ training_params = {
 training_metrics = {
     "rewards": episode_rewards,
     "losses": episode_losses}
-with open(f"{PATH}/training_params_{VERSION}.pkl", "wb") as f:
+with open(f"{PATH}/training_params.pkl", "wb") as f:
     pkl.dump(training_params, f)
-with open(f"{PATH}/training_metrics_{VERSION}.pkl", "wb") as f:
+with open(f"{PATH}/training_metrics.pkl", "wb") as f:
     pkl.dump(training_metrics, f)

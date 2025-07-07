@@ -13,8 +13,6 @@ import random
 import os
 import sys
 
-VERSION = 2
-
 # Set RNG seeds
 SEED = 23
 np.random.seed(SEED)
@@ -73,7 +71,7 @@ env.action_space.seed(SEED)
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.n
 state_dict = torch.load(
-    f"{PATH}/sample-weights/policy_{VERSION}.pth",
+    f"{PATH}/sample-weights/policy.pth",
     map_location=torch.device('cpu')
 )
 policy_net = DQN(state_dim, action_dim, 128)
@@ -101,9 +99,7 @@ while not done:
     last_pose_est = pose_est
 
     # Compute control action from estimated state
-    # state_est = state # full unobserved
     state_est = [pose_est, state[1]] # partially observed
-    # state_est = [pose_est, vel_est] # full observed
     with torch.no_grad():
         state_est = torch.FloatTensor(state_est).unsqueeze(0)#.to(device)
         q_values = policy_net(state_est)

@@ -39,7 +39,7 @@ class clsys():
 
         # Load DQN controller
         self.policy_net = DQN(2, 3, 128) # mountain car state dim: 2, mountain car action dim: 3
-        self.policy_net.load_state_dict(torch.load(f"{PATH}/sample-weights/policy_2.pth"))
+        self.policy_net.load_state_dict(torch.load(f"{PATH}/sample-weights/policy.pth"))
         self.policy_net.eval()
 
         # Other items
@@ -132,13 +132,12 @@ class clsys():
 # Wrapper environment for stepping MountainCar for verification purposes
 class clsysPseudo:
     def __init__(self, seed=0):
-        VERSION = 2
         PATH = os.path.dirname(os.path.abspath(sys.argv[0])) # file folder path
         self.rng = np.random.default_rng(seed)
         self.env = gym.make("MountainCar-v0").unwrapped
         self.env.reset(seed=seed)
         state_dict = torch.load(
-            f"{PATH}/sample-weights/policy_{VERSION}.pth",
+            f"{PATH}/sample-weights/policy.pth",
             map_location=torch.device('cpu'))
         state_dim = self.env.observation_space.shape[0]
         action_dim = self.env.action_space.n

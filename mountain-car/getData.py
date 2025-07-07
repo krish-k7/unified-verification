@@ -66,7 +66,7 @@ env = gym.make("MountainCar-v0", render_mode="rgb_array")
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.n
 state_dict = torch.load(
-    f"{PATH}/sample-weights/policy_{VERSION}.pth",
+    f"{PATH}/sample-weights/policy.pth",
     map_location=torch.device('cpu')
 )
 policy_net = DQN(state_dim, action_dim, 128)
@@ -110,8 +110,6 @@ for k in range(num_traj):
             state_est = torch.FloatTensor(state_est).unsqueeze(0)#.to(device)
             q_values = policy_net(state_est)
             action = q_values.argmax(dim=1).item()
-
-        # print(f"step {time:03d} | predicted pose {pose_est:+.3f} | actual pose: {state[0]:+.3f} | predicted velo {vel_est:+.3f} | actual velo {state[1]:+.3f}")
 
         # Record estimated/actual pose
         states.append(state)

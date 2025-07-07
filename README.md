@@ -35,11 +35,11 @@ pip install numpy scipy torch gym matplotlib opencv-python
 
 Execute scripts in the `mountain-car/` directory
 
-1. **Optional: Train Policy**: adjust the hyperparameters of `trainPolicy.py` and execute; however, a pretrained model is saved as 'policy_2.pth'
-2. **Optional: Test Policy**: test the DQN policy on the Mountain Car environment without intermediate vision-based state estimation ('testPolicy.py') or with state estimation ('testPolicyWithVis.py')
-3. **Generate Data**: Run `getData.py` to collect training and validation data. Some sample trajectories are already provided in 'sample-data.pkl'
-4. **Generate Intervals**: Use `genIntervals.py` to compute confidence intervals from the data. These are the intervals of the abstract interval Markov decision process.
-5. **Generate PRISM Model**: Run `prismgen.py` to create a PRISM model of the IMDP.
+1. **Optional: Train Policy**: adjust the hyperparameters of `trainPolicy.py` and execute. Note: a pretrained model `policy.pth` is available and will be overwritten.
+2. **Optional: Test Policy**: test the DQN policy on the Mountain Car environment without intermediate vision-based state estimation (`testPolicy.py`) or with state estimation (`testPolicyWithVis.py`)
+3. **Generate Data**: Run `getData.py` to collect training and validation data. Some sample trajectories are already provided in `sample-data.pkl` and will be overwritten.
+4. **Generate Intervals**: Use `genIntervals.py` to compute confidence intervals from the data. These are the intervals of the abstract interval Markov decision process. Sample intervals based on the previous `sample-data.pkl` are available in `sample-intervals.pkl`. Ensure that you re-run `genIntervals.py` each time you overwrite `sample-data.pkl`.
+5. **Generate PRISM Model**: Run `prismgen.py` to create a PRISM model of the IMDP. This automatically integrates both the probability intervals in `sample-intervals.pkl` and the non-deterministic dynamics in `plant.py` through the automaton generator `pagen.py`, which is then converted into PRISM syntax in `prismgen.py`. A sample PRISM model is available in `sample-model.pm`, and a model specifically used in the manuscript is available in `tested-imdp.pm`.
 6. **PRISM Model Checking**: From the terminal, navigate to the home directory, and build the model in PRISM with the command:
 ```bash
 <PATH-TO-PRISM> --javamaxmem 10g --cuddmaxmem 10g <PATH-TO-.pm-MODEL> <PATH-TO-.props-PROPS>
@@ -50,9 +50,9 @@ Increase/decrease java and cudd memory as needed.
 
 ## Synthetic Study Usage
 
-1. **Generate Data**: Run `getData.py` to collect training and validation data. Some sample trajectories are already provided in 'sample-data.pkl'
-2. **Generate Intervals**: Use `genIntervals.py` to compute confidence intervals from the data. These are the intervals of the abstract interval Markov decision process.
-3. **Generate PRISM Model**: Run `prismgen.py` to create a PRISM model of the IMDP.
+1. **Generate Data**: Run `getData.py` to collect training and validation data. Some sample trajectories are already provided in `sample-data.pkl` and will be overwritten.
+2. **Generate Intervals**: Use `genIntervals.py` to compute confidence intervals from the data. These are the intervals of the abstract interval Markov decision process. Sample intervals based on the previous `sample-data.pkl` are available in `sample-intervals.pkl`. Ensure that you re-run `genIntervals.py` each time you overwrite `sample-data.pkl`.
+3. **Generate PRISM Model**: Run `prismgen.py` to create a PRISM model of the IMDP. This automatically integrates both the probability intervals in `sample-intervals.pkl` and the non-deterministic dynamics in `plant.py` through the automaton generator `pagen.py`, which is then converted into PRISM syntax in `prismgen.py`. A sample PRISM model is available in `sample-model.pm`, and a model specifically used in the manuscript is available in `tested-imdp.pm`.
 4. **PRISM Model Checking**: From the terminal, navigate to the home directory, and build the model in PRISM with the command:
 ```bash
 <PATH-TO-PRISM> --javamaxmem 10g --cuddmaxmem 10g <PATH-TO-.pm-MODEL> <PATH-TO-.props-PROPS>
@@ -69,11 +69,13 @@ Increase/decrease java and cudd memory as needed.
 
 ## Acknowledgements
 
-- Mountain Car environment from OpenAI Gym.
+- Mountain Car environment from OpenAI Gym, and the vision model shared by Thomas Waite and Radoslav Ivanov<sup>[2]</sup>
 - PRISM model checker: https://www.prismmodelchecker.org/
 
 ---
 
-<sup>[1]</sup> Marta Kwiatkowska, Gethin Norman and David Parker. PRISM 4.0: Verification of Probabilistic Real-time Systems. In Proc. 23rd International Conference on Computer Aided Verification (CAV’11), volume 6806 of LNCS, pages 585-591, Springer, 2011.
+<sup>[1]</sup> Kwiatkowska, M., Norman, G., & Parker, D. (2011). PRISM 4.0: Verification of Probabilistic Real-time Systems. In Proc. 23rd International Conference on Computer Aided Verification (CAV’11), volume 6806 of LNCS, pages 585-591, Springer, 2011.
+
+<sup>[2]</sup> Waite, T., Geng, Y., Turnquist, T., Ruchkin, I., & Ivanov, R. (2025). State-Dependent Conformal Perception Bounds for Neuro-Symbolic Verification of Autonomous Systems. ArXiv. https://arxiv.org/abs/2502.21308
 
 For more details, see comments in the individual scripts.

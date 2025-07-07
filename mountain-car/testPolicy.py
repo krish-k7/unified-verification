@@ -7,14 +7,9 @@ except AttributeError:
     np.bool8 = np.bool_
 import gym
 import torch
-import pickle as pkl
-import matplotlib.pyplot as plt
 import time
-import random
 import os
 import sys
-
-VERSION = 2
 
 # Create MC environment
 env = gym.make('MountainCar-v0', render_mode="human")
@@ -25,7 +20,7 @@ action_dim = env.action_space.n
 # Load in the trained policy
 PATH = os.path.dirname(os.path.abspath(sys.argv[0])) # file folder path
 state_dict = torch.load(
-    f"{PATH}/sample-weights/policy_{VERSION}.pth",
+    f"{PATH}/sample-weights/policy.pth",
     map_location=torch.device('cpu')
 )
 policy_net = DQN(state_dim, action_dim, 128)

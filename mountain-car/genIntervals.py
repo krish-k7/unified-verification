@@ -76,12 +76,8 @@ for i in range(len(xbar_space)):
     lower_bounds.append(lowers)
     upper_bounds.append(uppers)
 
-    # print(f"Computed uppers: {uppers}")
-
 lower_bounds = np.array(lower_bounds)
 upper_bounds = np.array(upper_bounds)
-
-print(np.shape(lower_bounds))
 
 DATA = {
     "lower_bounds": lower_bounds,
