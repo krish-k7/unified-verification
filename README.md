@@ -22,13 +22,13 @@ This repository provides code for the unified verification and validation of vis
 ## Requirements
 
 - Python 3.10+
-- `numpy`, `scipy`, `torch`, `gym`, `matplotlib`, `opencv-python`
+- `numpy`, `scipy`, `torch`, `gym`, `matplotlib`, `opencv-python`, `gymnasium`, `gym[classic_control`
 - PRISM model checker<sup>[1]</sup>
 
 Install Python dependencies with:
 
 ```bash
-pip install numpy scipy torch gym matplotlib opencv-python
+pip install numpy scipy torch gym matplotlib opencv-python gymnasium gym[classic_control
 ```
 
 ## Mountain Car Study Usage
