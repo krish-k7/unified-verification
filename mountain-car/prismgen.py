@@ -18,7 +18,7 @@ class pm:
         self.init_command_lines = [] # initial distribution if desired
         self.est_command_lines = [] # main estimation prism commands
         self.act_command_lines = [] # main actuation prism commands
-        self.term_command_line = "" # the conditions foer which "term" becomes true
+        self.term_command_line = "" # the conditions for which "term" becomes true
         self.all_lines = [] # all prism code lines
 
         # Instantiate probabilistic automaton model
@@ -31,8 +31,8 @@ class pm:
 
         # Model details
         num_transitions = [len(state_list) for state_list in self.model.next_states.values()]
-        print(f"deadlocks = {any([num==0 for num in num_transitions])}")
-        print(f"transition stats: avg={round(np.mean(num_transitions), 1)}, min={np.min(num_transitions)}, max={np.max(num_transitions)}")
+        print(f">    Deadlocks = {any([num==0 for num in num_transitions])}")
+        print(f">    Transition stats: avg={round(np.mean(num_transitions), 1)}, min={np.min(num_transitions)}, max={np.max(num_transitions)}")
         
         # Get confidence intervals from the intervals file
         with open(self.intpath, "rb") as f:
@@ -88,9 +88,9 @@ class pm:
                 upper = uppers[k]
                 command_str += f"[{lower}, {upper}]:(err'={err_bar})&(est'=false)+"
                 
-                # Add final touches and append to external list
-                command_str = command_str[:-1] + ";\n" # replaces last + sign with ;
-                self.est_command_lines.append(command_str)
+            # Add final touches and append to external list
+            command_str = command_str[:-1] + ";\n" # replaces last + sign with ;
+            self.est_command_lines.append(command_str)
 
     # Actuation commands (non-deterministic uncertainty from state/estimate abstraction)
     # Dynamics stage in PRISM code (from state & estimate -> state non-deterministically)

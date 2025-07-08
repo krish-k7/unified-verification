@@ -46,8 +46,8 @@ class PA:
         count = 0
         for xbar, vbar, errbar in itertools.product(xbar_space, vbar_space, errbar_space):
             
-            if count % 10000 == 0:
-                print(f"{count} of {total} state/action abstractions made ({np.round(count/total*100, 2)}%)")
+            # if count % 100 == 0:
+            #     print(f"{count} of {total} state/action abstractions made ({np.round(count/total*100, 2)}%)")
 
             xlb, xub = (xbar * sx), (xbar * sx) + sx - 1e-10
             vlb, vub = (vbar * sv), (vbar * sv) + sv - 1e-10

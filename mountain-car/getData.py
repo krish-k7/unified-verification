@@ -14,10 +14,113 @@ import os
 import sys
 
 
+def get_data_comp(args):
+
+    # Unpack arguments
+    sx = args['sx']  # state space resolution
+    x_space = args['x_space']  # state space range
+    num_samps = args['num_samps']  # number of trials to run
+    noise_std = args['noise_std']  # noise standard deviation
+    savepath = args['savepath']  # path to save the data
+
+    # Load network
+    PATH = os.path.dirname(os.path.abspath(sys.argv[0])) # file folder path
+    state_dict = torch.load(
+        f"{PATH}/sample-weights/exampleStateEstimator.pth",
+        weights_only=True,
+    )
+    network = VisionNet(
+        num_conv_layers=2,
+        input_dim=[400, 600],
+        kernels=[32, 24],
+        stride=2,
+        conv_in_channels=[1, 16],
+        conv_out_channels=[16, 16],
+        pool_size=16,
+        pool_stride=2,
+        num_lin_layers=2,
+        linear_layer_size=100,
+        out_size=1,
+    )
+    network.load_state_dict(state_dict)
+    network.eval()
+
+    # Frame preprocessing (with optional noise)
+    def preprocess(frame_rgb, noise_std):
+
+        # Resize to training resolution (in case render settings differ)
+        frame_rgb = cv2.resize(frame_rgb, (600, 400), interpolation=cv2.INTER_LINEAR)
+        gray = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
+
+        # Add Gaussian noise before inversion so the statistics match training
+        if noise_std > 0:
+            noise = np.random.normal(loc=0.0, scale=noise_std, size=gray.shape).astype(np.float32)
+            gray = np.clip(gray + noise, 0.0, 1.0)
+        gray = 1.0 - gray
+
+        # Convert to tensor (N,C,H,W) and push to device
+        tensor = (
+            torch.from_numpy(gray)
+                .unsqueeze(0)      # channel dim
+                .unsqueeze(0)      # batch dim
+                .to(torch.float32)
+                #.to(device)
+        )
+        return tensor
+
+    # Load DQN model
+    env = gym.make("MountainCar-v0", render_mode="rgb_array")
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.n
+    state_dict = torch.load(
+        f"{PATH}/sample-weights/policy.pth",
+        map_location=torch.device('cpu')
+    )
+    policy_net = DQN(state_dim, action_dim, 128)
+    policy_net.load_state_dict(state_dict)
+    policy_net.eval()
+
+    # Loop through all discrete bins
+    SEED = 23
+    xbar_space = np.arange(int(x_space[0]/sx), int(x_space[1]/sx)+1)
+    state_data_train = []
+    estimate_data_train = []
+    for xbar in xbar_space:
+        print(xbar)
+        env.reset(seed=SEED)
+        for i in range(num_samps):
+
+            # Randomly select a pose
+            p = np.random.uniform(xbar*sx, (xbar*sx)+sx)
+            s = [p, 0]
+
+            # Place mountaincar here; run estimation
+            env.state = np.asarray(s, dtype=np.float32)
+            frame = env.render()
+            frame = preprocess(frame, noise_std)
+            with torch.no_grad():
+                p_est = network(frame).cpu().item()
+
+            # Append to trajectory
+            state_data_train.append(p)
+            estimate_data_train.append(p_est)
+    env.close()
+
+    # Save output
+    state_data_train = np.array(state_data_train)
+    estimate_data_train = np.array(estimate_data_train)
+    DATA = {
+        "state_data_train": state_data_train,
+        "estimate_data_train": estimate_data_train
+    }
+    with open(savepath, "wb") as f:
+        pkl.dump(DATA, f)
+
+
 def get_data(args):
 
     # Unpack arguments
-    num_traj = args['num_traj']  # number of trials to run
+    num_samps = args['num_samps']  # number of trials to run
     noise_std = args['noise_std']  # noise standard deviation
     savepath = args['savepath']  # path to save the data
 
@@ -83,8 +186,8 @@ def get_data(args):
     estimate_data_train = []
     num_success = 0
     num_steps = []
-    seeds = np.arange(0, num_traj, 1) * 10
-    for k in range(num_traj):
+    seeds = np.arange(0, num_samps, 1) * 10
+    for k in range(num_samps):
 
         print(f"Executing trial {k}")
 
@@ -134,7 +237,7 @@ def get_data(args):
     env.close()
 
     # Final stats
-    print(f"Policy success rate: {num_success/num_traj}")
+    print(f"Policy success rate: {num_success/num_samps}")
     print(f"Average number of time steps taken: {np.mean(num_steps)}")
 
     # Save output
