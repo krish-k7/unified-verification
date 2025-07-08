@@ -3,31 +3,39 @@ from pagen import PA
 from fractions import Fraction
 import numpy as np
 import pickle as pkl
-import os
-import sys
 
 # Prism model
 class pm:
 
-    def __init__(self, modelpath, method):
-        PATH = os.path.dirname(os.path.abspath(sys.argv[0])) # file folder path
-        self.modelpath = modelpath
-        self.method = method
+    def __init__(self, args):
+
+        # Unpack some arguments
+        self.modelpath = args['modelpath']
+        self.intpath = args['intpath']
+        self.method = args.get('method', "conserve")
+
+        # Preallocate command lines
         self.init_command_lines = [] # initial distribution if desired
         self.est_command_lines = [] # main estimation prism commands
         self.act_command_lines = [] # main actuation prism commands
         self.term_command_line = "" # the conditions foer which "term" becomes true
         self.all_lines = [] # all prism code lines
-        self.model = PA(method=self.method) # Probabilistic automaton
+
+        # Instantiate probabilistic automaton model
+        self.model = PA(args) # Probabilistic automaton
         self.minxbar, self.maxxbar = int(self.model.x_space[0]/self.model.sx), int(self.model.x_space[1]/self.model.sx)
         self.minvbar, self.maxvbar = int(self.model.v_space[0]/self.model.sv), int(self.model.v_space[1]/self.model.sv)
         self.minerrbar, self.maxerrbar = int(self.model.err_space[0]/self.model.serr), int(self.model.err_space[1]/self.model.serr)
         self.goal_set = []
         self.model.abstract() # Abstract dynamics into probabilistic automaton 
+
+        # Model details
         num_transitions = [len(state_list) for state_list in self.model.next_states.values()]
         print(f"deadlocks = {any([num==0 for num in num_transitions])}")
         print(f"transition stats: avg={round(np.mean(num_transitions), 1)}, min={np.min(num_transitions)}, max={np.max(num_transitions)}")
-        with open(f"{PATH}/data/sample-intervals.pkl", "rb") as f:
+        
+        # Get confidence intervals from the intervals file
+        with open(self.intpath, "rb") as f:
             DATA = pkl.load(f)
         self.lower_bounds = DATA["lower_bounds"]
         self.upper_bounds = DATA["upper_bounds"]
@@ -181,11 +189,14 @@ class pm:
         with open(self.modelpath, 'w') as file:
             file.writelines(self.all_lines)
 
-# Generate PRISM code for MountainCar
-PATH = os.path.dirname(os.path.abspath(sys.argv[0])) # file folder path
-prism_model = pm(f"{PATH}/prism-models/sample-model.pm", "conserve")
-prism_model.gen_goal_set()
-prism_model.gen_init_commands([0], [0]) # change initial state set as desired
-prism_model.gen_est_commands()
-prism_model.gen_act_commands()
-prism_model.make()
+
+def generate_prism_model(args):
+
+    # Generate PRISM code for MountainCar
+    init_state = args['init_state']
+    prism_model = pm(args)
+    prism_model.gen_goal_set()
+    prism_model.gen_init_commands([init_state[0]], [init_state[1]]) # adjust initial state set as desired
+    prism_model.gen_est_commands()
+    prism_model.gen_act_commands()
+    prism_model.make()

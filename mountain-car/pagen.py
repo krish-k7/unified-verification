@@ -6,27 +6,24 @@ import itertools
 # State machine
 class PA:
 
-    def __init__(self, method):
+    def __init__(self, args):
+
+        # Unpack arguments
+        self.sx = args['sx']  # state space resolution
+        self.x_space = args['x_space']  # state space range
+        self.sv = args['sv']  # velocity space resolution
+        self.v_space = args['v_space']  # velocity space range
+        self.serr = args['serr']  # error space resolution
+        self.err_space = args['err_space']  # error space range
+        self.method = args.get('method', "conserve")
 
         # Initialize MountainCar
         seed = 23
         self.clsys = clsysPseudo(seed)
-        self.method = method
-        print(self.method)
 
         # Preallocate state machine data
         self.next_states = {}
         self.state_keys = []
-
-        # State space
-        self.sx = 0.05
-        self.x_space = [-1.2, 0.6]
-        self.sv = 0.01
-        self.v_space = [-0.07, 0.07]
-
-        # Estimation space
-        self.serr = 0.1
-        self.err_space = [-0.2, 0.4]
 
     # Abstract dynamics and state space into overconservative state machine
     def abstract(self):
