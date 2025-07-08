@@ -28,7 +28,7 @@ This repository provides code for the unified verification and validation of vis
 Install Python dependencies with:
 
 ```bash
-pip install numpy scipy torch gym matplotlib opencv-python gymnasium gym[classic_control
+pip install numpy scipy torch gym matplotlib opencv-python gymnasium gym[classic_control]
 ```
 
 ## Mountain Car Study Usage
