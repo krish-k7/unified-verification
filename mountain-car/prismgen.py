@@ -31,8 +31,8 @@ class pm:
 
         # Model details
         num_transitions = [len(state_list) for state_list in self.model.next_states.values()]
-        print(f">    Deadlocks = {any([num==0 for num in num_transitions])}")
-        print(f">    Transition stats: avg={round(np.mean(num_transitions), 1)}, min={np.min(num_transitions)}, max={np.max(num_transitions)}")
+        print(f"    > Deadlocks = {any([num==0 for num in num_transitions])}")
+        print(f"    > Transition stats: avg={round(np.mean(num_transitions), 1)}, min={np.min(num_transitions)}, max={np.max(num_transitions)}")
         
         # Get confidence intervals from the intervals file
         with open(self.intpath, "rb") as f:
@@ -200,3 +200,29 @@ def generate_prism_model(args):
     prism_model.gen_est_commands()
     prism_model.gen_act_commands()
     prism_model.make()
+
+# Sample usage
+if __name__ == "__main__":
+
+    # Find paths with sample data and intervals
+    import sys
+    import os
+    PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
+
+    # Make the custom PRISM model
+    args = {
+        'modelpath': f'{PATH}/prism-models/sample-model.pm',
+        'intpath': f'{PATH}/data/sample-intervals.pkl',
+        'method': 'conserve',
+        'x_space': [-1.2, 0.6],
+        'v_space': [-0.07, 0.07],
+        'serr': 0.1,
+        'err_space': [-0.2, 0.4],
+        'sx': 0.05,
+        'sv': 0.01,
+        'init_state': [6, 7],
+    }
+    print("Generating PRISM model...")
+    generate_prism_model(args)
+    print("PRISM model generated at:", args['modelpath'])
+    

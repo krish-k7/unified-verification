@@ -1,2 +1,1 @@
 Pmin=? [ (x<24 & y<24) U<=200 (term=true) ]
-Pmax=? [ (x<24 & y<24) U<=200 (term=true) ]

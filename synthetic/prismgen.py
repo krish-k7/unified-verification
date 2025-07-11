@@ -3,31 +3,39 @@ from pagen import PA
 from fractions import Fraction
 import numpy as np
 import pickle as pkl
-import os
-import sys
 
 # Prism model
 class pm:
 
-    def __init__(self, modelpath):
-        PATH = os.path.dirname(os.path.abspath(sys.argv[0])) # file folder path
-        self.modelpath = modelpath
+    def __init__(self, args):
+
+        # Unpack some arguments
+        self.modelpath = args['modelpath']
+        self.intpath = args['intpath']
+
+        # Preallocate command lines
         self.init_command_lines = [] # initial distribution if desired
         self.est_command_lines = [] # main estimation prism commands
         self.act_command_lines = [] # main actuation prism commands
         self.term_command_line = "" # the conditions foer which "term" becomes true
         self.all_lines = [] # all prism code lines
-        self.model = PA() # Probabilistic automaton
+
+        # Instantiate probabilistic automaton model
+        self.model = PA(args) # Probabilistic automaton
         self.minxbar, self.maxxbar = int(self.model.x_space[0]/self.model.sx), int(self.model.x_space[1]/self.model.sx)
         self.minybar, self.maxybar = int(self.model.y_space[0]/self.model.sy), int(self.model.y_space[1]/self.model.sy)
         self.minxhatbar, self.maxxhatbar = int(self.model.xhat_space[0]/self.model.sxhat), int(self.model.xhat_space[1]/self.model.sxhat)
         self.minyhatbar, self.maxyhatbar = int(self.model.yhat_space[0]/self.model.syhat), int(self.model.yhat_space[1]/self.model.syhat)
         self.goal_set = []
-        self.model.abstract() # Abstract dynamics into probabilistic automaton 
+        self.model.abstract() # Abstract dynamics into probabilistic automaton
+
+        # Model details
         num_transitions = [len(state_list) for state_list in self.model.next_states.values()]
-        print(f"deadlocks = {any([num==0 for num in num_transitions])}")
-        print(f"transition stats: avg={round(np.mean(num_transitions), 1)}, min={np.min(num_transitions)}, max={np.max(num_transitions)}")
-        with open(f"{PATH}/data/sample-intervals.pkl", "rb") as f:
+        print(f"    > Deadlocks = {any([num==0 for num in num_transitions])}")
+        print(f"    > Transition stats: avg={round(np.mean(num_transitions), 1)}, min={np.min(num_transitions)}, max={np.max(num_transitions)}")
+        
+        # Get confidence intervals from the intervals file
+        with open(self.intpath, "rb") as f:
             DATA = pkl.load(f)
         self.lower_bounds = DATA["lower_bounds"]
         self.upper_bounds = DATA["upper_bounds"]
@@ -157,7 +165,6 @@ class pm:
                     ((i + 1) * sx, (j + 1) * sy)]
                 if all(np.sqrt((x - gx)**2 + (y - gy)**2) <= dist_threshold for x, y in corners):
                     self.goal_set.append((i, j))
-        print(self.goal_set)
 
     # Create new .pm file
     # Re-running results in erasure of existing lines
@@ -196,10 +203,57 @@ class pm:
         with open(self.modelpath, 'w') as file:
             file.writelines(self.all_lines)
 
-PATH = os.path.dirname(os.path.abspath(sys.argv[0])) # file folder path
-prism_model = pm(f"{PATH}/prism-models/sample-model.pm")
-prism_model.gen_goal_set()
-prism_model.gen_init_commands([0], [0]) # specify any initial set over valid state space
-prism_model.gen_est_commands()
-prism_model.gen_act_commands()
-prism_model.make()
+def generate_prism_model(args):
+
+    # Unpack arguments
+    if 'init_state' not in args or args['init_state'] is None:
+        init_state = args['system_args']['init_state']
+        sx = args['sx']
+        sy = args['sy']
+        init_state = [int(np.floor(init_state[0] / sx)), int(np.floor(init_state[1] / sy))]
+    else:
+        init_state = args['init_state']
+
+    # Instantiate PRISM model
+    prism_model = pm(args)
+    prism_model.gen_goal_set()
+    prism_model.gen_init_commands([init_state[0]], [init_state[1]])
+    prism_model.gen_est_commands()
+    prism_model.gen_act_commands()
+    prism_model.make()
+
+# Sample usage
+if __name__ == "__main__":
+
+    # Locate root paths to save model and load intervals
+    import os
+    import sys
+    PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
+
+    args = {
+        'modelpath': f"{PATH}/prism-models/sample-model.pm",
+        'intpath': f"{PATH}/data/sample-intervals.pkl",
+        'system_args': {
+            "bias": [0.0, 0.0],
+            "cov_lb": [[0.5, 0],[0, 0.5]],
+            "cov_ub": [[2.0, 0],[0, 2.0]],
+            "init_state": [0.0, 0.0],
+            "goal_state": [10.0, 10.0],
+            "gain": 0.5,
+            "max_step": 0.7,
+            "success_dist": 2.0,
+            "time_limit": np.inf,
+            "barricades": []
+        },
+        'sx': 0.5,
+        'x_space': [0.0, 12.0],
+        'sy': 0.5,
+        'y_space': [0.0, 12.0],
+        'sxhat': 1.0,
+        'xhat_space': [8.0, 12.0],
+        'syhat': 1.0,
+        'yhat_space': [8.0, 12.0],
+    }
+    print("Generating PRISM model...")
+    generate_prism_model(args)
+    print("PRISM model generated at:", args['modelpath'])

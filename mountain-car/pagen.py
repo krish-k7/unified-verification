@@ -2,6 +2,7 @@
 from plant import clsysPseudo
 import numpy as np
 import itertools
+import random
 
 # State machine
 class PA:
@@ -42,13 +43,8 @@ class PA:
         errbar_space = np.arange(int(err_space[0]/serr), int(err_space[1]/serr))
 
         # Simulate each state; overapproximiate transition relations
-        total = len(xbar_space)*len(vbar_space)*len(errbar_space)#*len(vhatbar_space)
-        count = 0
         for xbar, vbar, errbar in itertools.product(xbar_space, vbar_space, errbar_space):
             
-            # if count % 100 == 0:
-            #     print(f"{count} of {total} state/action abstractions made ({np.round(count/total*100, 2)}%)")
-
             xlb, xub = (xbar * sx), (xbar * sx) + sx - 1e-10
             vlb, vub = (vbar * sv), (vbar * sv) + sv - 1e-10
             errlb, errub = (errbar * serr), (errbar * serr) + serr - 1e-10
@@ -103,5 +99,30 @@ class PA:
                 self.state_keys.append(current_state)
                 self.next_states[current_state] = possible_states_clamped
 
-            count += 1
         self.clsys.close()
+
+# Sample usage
+if __name__ == "__main__":
+
+    # Build the automaton
+    args = {
+        'sx': 0.05,
+        'x_space': [-1.2, 0.6],
+        'sv': 0.01,
+        'v_space': [-0.07, 0.07],
+        'serr': 0.1,
+        'err_space': [-0.2, 0.4],
+        'method': "conserve" 
+    }
+    pa = PA(args)
+    pa.abstract()
+    automaton_mappings = pa.next_states # dictionary of state/estimate -> state mappings
+    
+    # Simulate the automaton in the abstract state space
+    state = (0, 4) # Example initial state in the abstract state space
+    for i in range(200):
+        err = (0,) # Example error
+        state_key = state + err # tuple concatenation
+        next_states = automaton_mappings[state_key]
+        state = random.choice(next_states) # non-determinism resolved randomly
+        print(f"Step {i}: State = {state}")

@@ -85,7 +85,7 @@ def generate_intervals_full(args):
     for xbar in xbar_space:
 
         # Collect data in this bin
-        num_samples = 10
+        num_samples = 100
         x = []
         x_hat = []
         env.reset(seed=SEED)
@@ -218,3 +218,21 @@ def generate_intervals(args):
     }
     with open(savepath, "wb") as f:
         pkl.dump(DATA, f)
+
+# Sample usage
+if __name__ == "__main__":
+
+    # Find path to save intervals file
+    PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
+
+    args = {
+        'sx': 0.05,
+        'x_space': [-1.2, 0.6],
+        'serr': 0.1,
+        'err_space': [-0.2, 0.4],
+        'alpha': 0.05, 
+        'savepath': f'{PATH}/data/sample-intervals.pkl',
+    }
+    print("Generating intervals...")
+    generate_intervals_full(args)
+    print("Intervals generated and saved to", args['savepath'])

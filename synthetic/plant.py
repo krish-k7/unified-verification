@@ -37,7 +37,7 @@ class SyntheticSystem:
         if self.time >= self.time_limit:
             self.failed = True
             self.terminal = True
-            print("Time expired!")
+            # print("Time expired!")
 
         # Draw waypoint estimate from gaussian (params are a function of distance to goal)
         dist_to_goal = np.linalg.norm(self.state - self.goal_state)
@@ -63,7 +63,7 @@ class SyntheticSystem:
         if self.check_barricades(self.state):
             self.failed = True
             self.terminal = True
-            print("Collision!")
+            # print("Collision!")
         
         return waypoint_est, action, self.state, self.terminal, self.failed
     
@@ -89,3 +89,28 @@ class SyntheticSystem:
                 return True
         return False
 
+# Sample usage
+if __name__ == "__main__":
+
+    # Instantiate the synthetic system
+    args = {
+        "bias": [0.0, 0.0],
+        "cov_lb": [[0.5, 0.0], [0.0, 0.5]],
+        "cov_ub": [[2.0, 0.0], [0.0, 2.0]],
+        "init_state": [0.0, 0.0],
+        "goal_state": [10.0, 10.0],
+        "gain": 0.5,
+        "max_step": 0.7,
+        "success_dist": 2.0,
+        "time_limit": 25,
+        "barricades": [
+                {"x_min": 0.0, "x_max": 15.0, "y_min": 12.0, "y_max": 15.0},
+                {"x_min": 12.0, "x_max": 15.0, "y_min": 0.0, "y_max": 15.0}
+            ]
+    }
+    system = SyntheticSystem(args)
+    for _ in range(100):
+        est, action, state, terminal, failed = system.step()
+        print(f"State: {np.round(state, 4).astype(float)}, Estimate: {np.round(est, 4).astype(float)}, Action: {np.round(action, 4).astype(float)}, Terminal: {terminal}, Failed: {failed}")
+        if terminal or failed:
+            break

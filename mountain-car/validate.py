@@ -90,22 +90,43 @@ def run_validation(args):
                 conf, _ = integrate_dirichlet(alphas, support)
                 confidences.append(conf)
                 if display:
-                    print(f"    Out-of-domain confidence at {i}: {conf} over {n_total} samples")
+                    print(f"    > Confidence at {i}: {conf} over {n_total} samples")
 
-        # Append collected confidences to externl list
+        # Append collected confidences to external list
         all_confs.append(confidences)
 
         # Save validations confidence results
         if display:
             print(f"Wrapping up instance {k}...")
             print(f"%========= Results of instance {k} =========%")
-            print(f"Out-of-domain domain data:")
-            print(f"  o Mean: {np.mean(confidences)}")
-            print(f"  o Min: {np.min(confidences)}")
-            print(f"  o Max: {np.max(confidences)}")
-            print(f"  o Median: {np.median(confidences)}")
+            print(f"    > Mean: {np.mean(confidences)}")
+            print(f"    > Min: {np.min(confidences)}")
+            print(f"    > Max: {np.max(confidences)}")
+            print(f"    > Median: {np.median(confidences)}")
             print(f"Continuing to next instance...")
     if display:
         print("Process finished.")
 
     return all_confs
+
+# Sampel usage
+if __name__ == "__main__":
+
+    # Find path to save intervals file
+    import os
+    import sys
+    PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
+
+    args = {
+        'sx': 0.05,
+        'x_space': [-1.2, 0.6],
+        'serr': 0.1,
+        'err_space': [-0.2, 0.4], 
+        'num_instances': 1,
+        'testpath': f'{PATH}/data/sample-test-data.pkl',
+        'intpath': f'{PATH}/data/sample-intervals.pkl',
+        'display': True,
+    }
+    print("Starting validation process...\n")
+    run_validation(args)  # Call the function to run validation
+    print("Validation complete.")

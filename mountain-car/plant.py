@@ -38,8 +38,9 @@ class clsys():
         self.vision_net.eval()
 
         # Load DQN controller
-        self.policy_net = DQN(2, 3, 128) # mountain car state dim: 2, mountain car action dim: 3
-        self.policy_net.load_state_dict(torch.load(f"{PATH}/sample-weights/policy.pth"))
+        self.policy_net = DQN(2, 3, 128)  # mountain car state dim: 2, mountain car action dim: 3
+        self.policy_net.load_state_dict(
+            torch.load(f"{PATH}/sample-weights/policy.pth", map_location=torch.device('cpu')))
         self.policy_net.eval()
 
         # Other items
@@ -161,3 +162,16 @@ class clsysPseudo:
 
     def close(self):
         self.env.close()
+
+# Sample usage
+if __name__ == "__main__":
+    sys = clsys(sigma=0.1, seed=23)
+    for t in range(200):
+        state, state_est = sys.step()
+        state = [round(float(s), 4) for s in state]
+        state_est = [round(float(s), 4) for s in state_est]
+        print(f"Time step: {t}, State: {state}, Estimated State: {state_est}")
+        if sys.done:
+            print("Episode finished after {} timesteps".format(t+1))
+            break
+    sys.close_environment()

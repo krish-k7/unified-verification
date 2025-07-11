@@ -13,116 +13,13 @@ import pickle as pkl
 import os
 import sys
 
-
-def get_data_comp(args):
-
-    # Unpack arguments
-    sx = args['sx']  # state space resolution
-    x_space = args['x_space']  # state space range
-    num_samps = args['num_samps']  # number of trials to run
-    noise_std = args['noise_std']  # noise standard deviation
-    savepath = args['savepath']  # path to save the data
-
-    # Load network
-    PATH = os.path.dirname(os.path.abspath(sys.argv[0])) # file folder path
-    state_dict = torch.load(
-        f"{PATH}/sample-weights/exampleStateEstimator.pth",
-        weights_only=True,
-    )
-    network = VisionNet(
-        num_conv_layers=2,
-        input_dim=[400, 600],
-        kernels=[32, 24],
-        stride=2,
-        conv_in_channels=[1, 16],
-        conv_out_channels=[16, 16],
-        pool_size=16,
-        pool_stride=2,
-        num_lin_layers=2,
-        linear_layer_size=100,
-        out_size=1,
-    )
-    network.load_state_dict(state_dict)
-    network.eval()
-
-    # Frame preprocessing (with optional noise)
-    def preprocess(frame_rgb, noise_std):
-
-        # Resize to training resolution (in case render settings differ)
-        frame_rgb = cv2.resize(frame_rgb, (600, 400), interpolation=cv2.INTER_LINEAR)
-        gray = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
-
-        # Add Gaussian noise before inversion so the statistics match training
-        if noise_std > 0:
-            noise = np.random.normal(loc=0.0, scale=noise_std, size=gray.shape).astype(np.float32)
-            gray = np.clip(gray + noise, 0.0, 1.0)
-        gray = 1.0 - gray
-
-        # Convert to tensor (N,C,H,W) and push to device
-        tensor = (
-            torch.from_numpy(gray)
-                .unsqueeze(0)      # channel dim
-                .unsqueeze(0)      # batch dim
-                .to(torch.float32)
-                #.to(device)
-        )
-        return tensor
-
-    # Load DQN model
-    env = gym.make("MountainCar-v0", render_mode="rgb_array")
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.n
-    state_dict = torch.load(
-        f"{PATH}/sample-weights/policy.pth",
-        map_location=torch.device('cpu')
-    )
-    policy_net = DQN(state_dim, action_dim, 128)
-    policy_net.load_state_dict(state_dict)
-    policy_net.eval()
-
-    # Loop through all discrete bins
-    SEED = 23
-    xbar_space = np.arange(int(x_space[0]/sx), int(x_space[1]/sx)+1)
-    state_data_train = []
-    estimate_data_train = []
-    for xbar in xbar_space:
-        print(xbar)
-        env.reset(seed=SEED)
-        for i in range(num_samps):
-
-            # Randomly select a pose
-            p = np.random.uniform(xbar*sx, (xbar*sx)+sx)
-            s = [p, 0]
-
-            # Place mountaincar here; run estimation
-            env.state = np.asarray(s, dtype=np.float32)
-            frame = env.render()
-            frame = preprocess(frame, noise_std)
-            with torch.no_grad():
-                p_est = network(frame).cpu().item()
-
-            # Append to trajectory
-            state_data_train.append(p)
-            estimate_data_train.append(p_est)
-    env.close()
-
-    # Save output
-    state_data_train = np.array(state_data_train)
-    estimate_data_train = np.array(estimate_data_train)
-    DATA = {
-        "state_data_train": state_data_train,
-        "estimate_data_train": estimate_data_train
-    }
-    with open(savepath, "wb") as f:
-        pkl.dump(DATA, f)
-
-
 def get_data(args):
 
     # Unpack arguments
     num_samps = args['num_samps']  # number of trials to run
     noise_std = args['noise_std']  # noise standard deviation
     savepath = args['savepath']  # path to save the data
+    display = args.get('display', False)  # whether to display the environment
 
     # Load network
     PATH = os.path.dirname(os.path.abspath(sys.argv[0])) # file folder path
@@ -165,7 +62,6 @@ def get_data(args):
                 .unsqueeze(0)      # channel dim
                 .unsqueeze(0)      # batch dim
                 .to(torch.float32)
-                #.to(device)
         )
         return tensor
 
@@ -188,8 +84,8 @@ def get_data(args):
     num_steps = []
     seeds = np.arange(0, num_samps, 1) * 10
     for k in range(num_samps):
-
-        print(f"Executing trial {k}")
+        if display:
+            print(f"Executing trial {k}")
 
         # Deploy the policy and estimator
         state, _ = env.reset(seed=int(seeds[k]))
@@ -224,21 +120,25 @@ def get_data(args):
         state_data_train.extend(states)
         estimate_data_train.extend(estimates)
         num_steps.append(time)
-            
-        if time >= 200:
-            print("Failed!")
-        else:
-            print("Success!")
-            num_success += 1
         
-        print(f"Time steps consumed: {time}")
-        print(f"Current success rate: {round(num_success/(k+1), 4)}\n")
+        if display:
+            print(f"Trial {k + 1}/{num_samps} completed.")
+            if time >= 200:
+                print("    > Result: Failed to reach the goal.")
+            else:
+                print("    > Result: Success! Reached the goal.")
+                num_success += 1
+            print(f"    > Time steps taken: {time}")
+            print(f"    > Current success rate: {round(num_success / (k + 1), 4)}")
 
     env.close()
 
     # Final stats
-    print(f"Policy success rate: {num_success/num_samps}")
-    print(f"Average number of time steps taken: {np.mean(num_steps)}")
+    if display:
+        print("Final Statistics:")
+        print(f"    > Total trials: {num_samps}")
+        print(f"    > Success rate: {num_success / num_samps:.2%}")
+        print(f"    > Average time steps per trial: {np.mean(num_steps):.2f}")
 
     # Save output
     state_data_train = np.array(state_data_train)
@@ -249,3 +149,21 @@ def get_data(args):
     }
     with open(savepath, "wb") as f:
         pkl.dump(DATA, f)
+
+# Sample usage
+if __name__ == "__main__":
+
+    # Find path to save test data file
+    PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
+
+    args = {
+        'sx': 0.05,
+        'x_space': [-1.2, 0.6],
+        'num_samps': 100, # really, num trajectories
+        'noise_std': 0.01,
+        'savepath': f'{PATH}/data/sample-test-data.pkl',
+        'display': True, # Explicitly set to True to display the statistics
+    }
+    print("Collecting test trajectories...\n")
+    get_data(args) # Call the function to collect data
+    print("Data collection complete. Data saved to:", args['savepath'])

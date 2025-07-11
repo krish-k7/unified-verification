@@ -6,43 +6,25 @@ import itertools
 # State machine
 class PA:
 
-    def __init__(self):
+    def __init__(self, args):
 
-        # Initialize VBAS environment
-        args = {
-            "bias": [0.0, 0.0],
-            "cov_lb": [[0.5, 0],[0, 0.5]],
-            "cov_ub": [[2.0, 0],[0, 2.0]],
-            "init_state": [0.0, 0.0],
-            "goal_state": [10.0, 10.0],
-            "gain": 0.5,
-            "max_step": 0.7,
-            "success_dist": 2.0,
-            "time_limit": np.inf,
-            "barricades": [
-                # {"x_min": 0.0, "x_max": 15.0, "y_min": 12.0, "y_max": 15.0}
-            ]}
-        self.sys = SyntheticSystem(args)
+        # Unpack arguments
+        self.system_args = args['system_args']
+        self.sx = args['sx']
+        self.x_space = args['x_space']
+        self.sy = args['sy']
+        self.y_space = args['y_space']
+        self.sxhat = args['sxhat']
+        self.xhat_space = args['xhat_space']
+        self.syhat = args['syhat']
+        self.yhat_space = args['yhat_space']
+
+        # Initialize synthetic environment
+        self.sys = SyntheticSystem(self.system_args)
 
         # Preallocate state machine data
         self.next_states = {}
         self.state_keys = []
-
-        # State space abstraction parameters
-        self.sx = 0.5
-        self.x_space = [0.0, 12.0]
-        self.sy = 0.5
-        self.y_space = [0.0, 12.0]
-
-        # Estimation space abstraction parameters
-        self.sxhat = 1.0
-        self.xhat_space = [8.0, 12.0]
-        self.syhat = 1.0
-        self.yhat_space = [8.0, 12.0]
-
-        # Simulation and CI construction parameters
-        self.lower_bounds = []
-        self.upper_bounds = []
 
     # Abstract dynamics and state space into overconservative state machine
     def abstract(self):
@@ -64,12 +46,7 @@ class PA:
         yhatbar_space = np.arange(int(yhat_space[0]/syhat), int(yhat_space[1]/syhat))
 
         # Simulate each state; overapproximiate transition relations
-        total = len(xbar_space)*len(ybar_space)*len(xhatbar_space)*len(yhatbar_space)
-        count = 0
         for xbar, ybar, xhatbar, yhatbar in itertools.product(xbar_space, ybar_space, xhatbar_space, yhatbar_space):
-            
-            if count % 10000 == 0:
-                print(f"{count} of {total} state/action abstractions made ({np.round(count/total*100, 2)}%)")
 
             xlb, xub = (xbar * sx), (xbar * sx) + sx - 1e-5
             ylb, yub = (ybar * sy), (ybar * sy) + sy - 1e-5
@@ -118,5 +95,44 @@ class PA:
             self.state_keys.append(current_state)
             self.next_states[current_state] = possible_states
 
-            count += 1
-        
+# Sample usage
+if __name__ == "__main__":
+
+    # Additional libraries
+    import random
+
+    # Build the automaton
+    args = {
+        'system_args': {
+            "bias": [0.0, 0.0],
+            "cov_lb": [[0.5, 0],[0, 0.5]],
+            "cov_ub": [[2.0, 0],[0, 2.0]],
+            "init_state": [0.0, 0.0],
+            "goal_state": [10.0, 10.0],
+            "gain": 0.5,
+            "max_step": 0.7,
+            "success_dist": 2.0,
+            "time_limit": np.inf,
+            "barricades": []
+        },
+        'sx': 0.5,
+        'x_space': [0.0, 12.0],
+        'sy': 0.5,
+        'y_space': [0.0, 12.0],
+        'sxhat': 1.0,
+        'xhat_space': [8.0, 12.0],
+        'syhat': 1.0,
+        'yhat_space': [8.0, 12.0],
+    }
+    pa = PA(args)
+    pa.abstract()
+    automaton_mappings = pa.next_states # dictionary of state/estimate -> state mappings
+    
+    # Simulate the automaton in the abstract state space
+    state = (0, 0) # Example initial state in the abstract state space
+    for i in range(30):
+        est = (10, 10) # Example estimate in the abstract state space
+        state_key = state + est # tuple concatenation
+        next_states = automaton_mappings[state_key]
+        state = random.choice(next_states) # non-determinism resolved randomly
+        print(f"Step {i}: State = {state}")
