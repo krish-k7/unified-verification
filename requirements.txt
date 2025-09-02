@@ -1,0 +1,9 @@
+numpy
+scipy
+scikit-learn
+scikit-learn-extra
+torch
+matplotlib
+opencv-python
+gymnasium
+gymnasium[classic_control]
