@@ -117,6 +117,15 @@ def partition(K, sx, sy, x_space, y_space, lambda_pos, lambda_dir, rng=0):
 
     return P, U, labels, sites, cells, mean_dirs
 
+# alignment quanitification (angular variance)
+def circular_mean(U):
+    
+    n = U.shape[0]
+    s = U.sum(axis=0) # resultant vector
+    R = float(np.linalg.norm(s) / n) # mean resultant length in [0, 1]
+
+    return R
+
 # visualization function
 def plot_partition(P, U, labels, sites, cells, mean_dirs, save_path, quiver_skip=3):
     K = len(sites)
@@ -151,11 +160,28 @@ def plot_partition(P, U, labels, sites, cells, mean_dirs, save_path, quiver_skip
     #     plt.arrow(sites[k,0], sites[k,1], d[0], d[1],
     #               head_width=0.1, length_includes_head=True, color='k', zorder=3)
 
+    # overlay vector similarity quantification (min=0, max=1) on each cell
+    for k in range(K):
+        Uk = U[labels==k]
+        R = circular_mean(Uk)
+        R_trunc = np.floor(R * 1e4) / 1e4 # truncate to 4 decimal places
+        
+        cx = float(cells[k][:, 0].mean())
+        cy = float(cells[k][:, 1].mean())
+
+        plt.text(
+            cx, cy,
+            f"R={R_trunc:.4f}",
+            ha="center", va="center",
+            fontsize=2, zorder=3,
+            bbox=dict(facecolor="white", edgecolor="none", alpha=0.7, pad=0.1)
+        )
+
     plt.gca().set_aspect('equal', adjustable='box')
     plt.xlabel('x'); plt.ylabel('y')
     plt.title('Voronoi partition of displacement field (synthetic benchmark)')
     plt.tight_layout()
-    plt.savefig(save_path, dpi=300)
+    plt.savefig(save_path, dpi=600)
     plt.close()
 
 

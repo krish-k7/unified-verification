@@ -67,6 +67,7 @@ class SyntheticSystem:
         
         return waypoint_est, action, self.state, self.terminal, self.failed
     
+    
     def pseudostep(self, state, waypoint):
         state = np.array(state)
         waypoint = np.array(waypoint)
@@ -75,6 +76,60 @@ class SyntheticSystem:
         if action_norm > self.max_step:
             action = action * (self.max_step / action_norm)
         return action
+    
+    def pseudostep_1(self, state):
+        """
+        Deterministic pseudostep from an arbitrary state:
+        - Computes action towards nominal waypoint
+        - Returns the action (displacement vector for one step)
+        """
+        state = np.array(state)
+        waypoint = self.goal_state + self.bias
+        action = self.gain * (waypoint - state)
+        action_norm = np.linalg.norm(action)
+        if action_norm > self.max_step:
+            action = action * (self.max_step / action_norm)
+        return action
+    
+    def pseudostep_2(self, state):
+        """
+        Stochastic pseudostep from an arbitrary state:
+        - If distance to goal > success_dist: sample fuzzy waypoint with distance-dependent covariance
+        - If distance to goal <= success_dist: use nominal waypoint (goal_state + bias)
+        - Computes the action toward that waypoint with gain and max_step clipping
+        - Returns the action (displacement vector for one step)
+        """
+        state = np.array(state, dtype=float)
+        dist_to_goal = np.linalg.norm(state - self.goal_state)
+
+        # If within success distance, use nominal waypoint
+        if dist_to_goal <= self.success_dist:
+            waypoint = self.goal_state + self.bias
+        else:
+            # Compute distance ratio
+            denom = (self.init_dist - self.success_dist)
+            if denom == 0:
+                t = 0.0
+            else:
+                t = (dist_to_goal - self.success_dist) / denom
+            t = np.clip(t, 0.0, 1.0)
+
+            # Distance-dependent covariance
+            cov = self.cov_lb + t * (self.cov_ub - self.cov_lb)
+            cov = 0.5 * (cov + cov.T)  # symmetrize
+            cov += np.eye(cov.shape[0]) * 1e-12
+
+            # Sample waypoint from Gaussian
+            waypoint = np.random.multivariate_normal(self.goal_state + self.bias, cov, size=1)[0]
+
+        # Proportional step toward chosen waypoint
+        action = self.gain * (waypoint - state)
+        action_norm = np.linalg.norm(action)
+        if action_norm > self.max_step and action_norm > 0:
+            action = action * (self.max_step / action_norm)
+
+        return action
+
     
     def reset(self):
         self.terminal = False
